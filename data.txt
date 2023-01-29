@@ -1,0 +1,1 @@
+{"filename1": "uploads\\sample.csv", "result1": "[('PVC', [(430, 706)]), ('Normal', [(240, 431)]), ('VEB', []), ('RBB', []), ('PAB', []), ('LBB', []), ('APC', [])]"}
