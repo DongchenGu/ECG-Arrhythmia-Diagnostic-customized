@@ -8,7 +8,7 @@ import re
 import numpy as np
 import cv2
 import pandas as pd
-import numpy as np
+
 import biosppy
 import matplotlib.pyplot as plt
 # Keras
@@ -26,9 +26,8 @@ app = Flask(__name__)
 
 
 # Model saved with Keras model.save()
-
 # Load your trained model
-model = load_model('./models/save_model.hdf5')
+model = load_model('./models/save_model.h5')
 model.make_predict_function()          # Necessary
 print('Model loaded. Start serving...')
 output = []
@@ -38,97 +37,71 @@ output = []
 #model = ResNet50(weights='imagenet')
 #print('Model loaded. Check http://127.0.0.1:5000/')
 
-def model_predict(uploaded_files, model):
-    flag = 1
-    
-    for path in uploaded_files:
-        #index1 = str(path).find('sig-2') + 6
-        #index2 = -4
-        #ts = int(str(path)[index1:index2])
-        APC, NORMAL, LBB, PVC, PAB, RBB, VEB = [], [], [], [], [], [], []
-        output.append(str(path))
-        result = {"APC": APC, "Normal": NORMAL, "LBB": LBB, "PAB": PAB, "PVC": PVC, "RBB": RBB, "VEB": VEB}
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow.keras import Sequential,utils
+from tensorflow.keras.layers import Flatten, Dense, Conv1D, MaxPool1D, Dropout
 
-        
-        indices = []
-        
-        kernel = np.ones((4,4),np.uint8)
-        
-        csv = pd.read_csv(path)
-        csv_data = csv[' Sample Value']
-        data = np.array(csv_data)
-        signals = []
-        count = 1
-        peaks =  biosppy.signals.ecg.christov_segmenter(signal=data, sampling_rate = 200)[0]
-        for i in (peaks[1:-1]):
-           diff1 = abs(peaks[count - 1] - i)
-           diff2 = abs(peaks[count + 1]- i)
-           x = peaks[count - 1] + diff1//2
-           y = peaks[count + 1] - diff2//2
-           signal = data[x:y]
-           signals.append(signal)
-           count += 1
-           indices.append((x,y))
+def create_model():
+  model = Sequential()
 
-            
-        for count, i in enumerate(signals):
-            fig = plt.figure(frameon=False)
-            plt.plot(i) 
-            plt.xticks([]), plt.yticks([])
-            for spine in plt.gca().spines.values():
-                spine.set_visible(False)
+  model.add(Conv1D(filters=32, kernel_size=(3,), padding='same', activation='relu', input_shape = (187,1))) # notice that this 187 is the size of columns in dataset
+  model.add(Conv1D(filters=64, kernel_size=(3,), padding='same', activation='relu'))
+  model.add(Conv1D(filters=128, kernel_size=(5,), padding='same', activation='relu'))
 
-            filename = 'fig' + '.png'
-            fig.savefig(filename)
-            im_gray = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
-            im_gray = cv2.erode(im_gray,kernel,iterations = 1)
-            im_gray = cv2.resize(im_gray, (128, 128), interpolation = cv2.INTER_LANCZOS4)
-            cv2.imwrite(filename, im_gray)
-            im_gray = cv2.imread(filename)
-            pred = model.predict(im_gray.reshape((1, 128, 128, 3)))
-            pred_class = pred.argmax(axis=-1)
-            if pred_class == 0:
-                APC.append(indices[count]) 
-            elif pred_class == 1:
-                NORMAL.append(indices[count]) 
-            elif pred_class == 2:    
-                LBB.append(indices[count])
-            elif pred_class == 3:
-                PAB.append(indices[count])
-            elif pred_class == 4:
-                PVC.append(indices[count])
-            elif pred_class == 5:
-                RBB.append(indices[count]) 
-            elif pred_class == 6:
-                VEB.append(indices[count])
-        
+  model.add(MaxPool1D(pool_size=(3,), strides=2, padding='same'))
+  model.add(Dropout(0.5))
+
+  model.add(Flatten())
+
+  model.add(Dense(units = 256, activation='relu'))
+  model.add(Dense(units = 512, activation='relu'))
+
+  model.add(Dense(units = 5, activation='softmax'))
+  return model
 
 
-        result = sorted(result.items(), key = lambda y: len(y[1]))[::-1]   
-        output.append(result)
-        data = {}
-        data['filename'+ str(flag)] = str(path)
-        data['result'+str(flag)] = str(result)
+from sklearn import metrics
 
-        json_filename = 'data.txt'
-        with open(json_filename, 'a+') as outfile:
-            json.dump(data, outfile) 
-        flag+=1 
-    
+#这里的uploaded_files就是输入的CSV文件的路径，按照教授的说法不让用户手动上传的话，从数据库里直接把指定文件的路径传到这里就可以了。
+def model_predict(uploaded_files="./uploads/PVC2.csv",weights_dir="./models/save_model.h5"):
+  model = create_model()
+  model.load_weights(weights_dir)
+
+  test_data = pd.read_csv(uploaded_files, header=None)
+  test_df = pd.DataFrame(test_data)
+
+  test_df.head()
+  classes = []
+  index = 0
+
+  test_X = test_df.drop([187], axis=1)
+  test_X = np.array(test_X).reshape(test_X.shape[0], test_X.shape[1], 1)
+
+  test_pred_y = model.predict(test_X)
+
+  inference_result = [np.where(i == np.max(i))[0][0] for i in test_pred_y]
+  print(f'Batch inference results:{inference_result}')
+
+  for i in range(len(inference_result)):
+    if inference_result[i] ==0:
+        inference_result[i]= 'N_RBB_LBB'
+    if inference_result[i] ==1:
+            inference_result[i]= 'APC'
+    if inference_result[i] ==4:
+                inference_result[i]='PACED'
+    if inference_result[i] ==2:
+        inference_result[i]='PVC'
+    if inference_result[i] ==3:
+        inference_result[i]='FV'
+
+  return inference_result
 
 
 
-    with open(json_filename, 'r') as file:
-        filedata = file.read()
-    filedata = filedata.replace('}{', ',')
-    with open(json_filename, 'w') as file:
-        file.write(filedata) 
-    os.remove('fig.png')      
-    return output
-    
-    
-
-    
     
 
 
@@ -149,15 +122,15 @@ def upload():
         for f in request.files.getlist('file'):
 
             basepath = os.path.dirname(__file__)
-            file_path = os.path.join(
-            basepath, 'uploads', secure_filename(f.filename))
-            print(file_path)
-            if file_path[-4:] == '.csv':
-                uploaded_files.append(file_path)
-                f.save(file_path)
-        print(uploaded_files)        
+#             file_path = os.path.join(
+#             basepath, 'uploads', secure_filename(f.filename))
+#             print(file_path)
+#             if file_path[-4:] == '.csv':
+#                 uploaded_files.append(file_path)
+#                 f.save(file_path)
+        print(uploaded_files)
         # Make prediction
-        pred = model_predict(uploaded_files, model)
+        pred = model_predict()
 
 
         # Process your result for human
