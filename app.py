@@ -64,7 +64,7 @@ def create_model():
 from sklearn import metrics
 #uploaded_files="./uploads/PVC2.csv"
 #这里的uploaded_files就是输入的CSV文件的路径，按照教授的说法不让用户手动上传的话，从数据库里直接把指定文件的路径传到这里就可以了。
-def model_predict(uploaded_files,weights_dir="./models/save_model.h5"):
+def model_predict(uploaded_files="./uploads/PVC2.csv",weights_dir="./models/save_model.h5"):
   model = create_model()
   model.load_weights(weights_dir)
 
@@ -98,8 +98,6 @@ def model_predict(uploaded_files,weights_dir="./models/save_model.h5"):
   return inference_result
 
 
-
-    
 
 
 @app.route('/', methods=['GET'])
