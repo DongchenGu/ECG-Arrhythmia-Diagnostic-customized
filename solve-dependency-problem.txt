@@ -9,3 +9,5 @@ pip install greenlet==0.4.16
 pip install opencv-python
 pip install pandas
 pip install biosppy
+pip install seaborn
+pip install matplotlib
