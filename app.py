@@ -5,20 +5,17 @@ import sys
 import os
 import glob
 import re
-import numpy as np
-import cv2
-import pandas as pd
 
-import biosppy
-import matplotlib.pyplot as plt
+
 # Keras
 from keras.applications.imagenet_utils import preprocess_input, decode_predictions
 from keras.models import load_model
-from keras.preprocessing import image
+# from keras.preprocessing import image
 
 # Flask utils
 from flask import Flask, redirect, url_for, request, render_template
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
+# from gevent.pywsgi import WSGIServerPillow
 from gevent.pywsgi import WSGIServer
 
 # Define a flask app
