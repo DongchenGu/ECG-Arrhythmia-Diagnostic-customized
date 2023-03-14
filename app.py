@@ -14,7 +14,7 @@ from keras.models import load_model
 
 # Flask utils
 from flask import Flask, redirect, url_for, request, render_template
-# from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename
 # from gevent.pywsgi import WSGIServerPillow
 from gevent.pywsgi import WSGIServer
 
@@ -62,9 +62,9 @@ def create_model():
 
 
 from sklearn import metrics
-
+#uploaded_files="./uploads/PVC2.csv"
 #这里的uploaded_files就是输入的CSV文件的路径，按照教授的说法不让用户手动上传的话，从数据库里直接把指定文件的路径传到这里就可以了。
-def model_predict(uploaded_files="./uploads/PVC2.csv",weights_dir="./models/save_model.h5"):
+def model_predict(uploaded_files,weights_dir="./models/save_model.h5"):
   model = create_model()
   model.load_weights(weights_dir)
 
@@ -111,25 +111,23 @@ def index():
 @app.route('/predict', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
-        # Get the file from post request
+        # Get the file from  postrequest
         uploaded_files = []
 
         # Save the file to ./uploads
         print(uploaded_files)
         for f in request.files.getlist('file'):
-
             basepath = os.path.dirname(__file__)
-#             file_path = os.path.join(
-#             basepath, 'uploads', secure_filename(f.filename))
-#             print(file_path)
-#             if file_path[-4:] == '.csv':
-#                 uploaded_files.append(file_path)
-#                 f.save(file_path)
+            file_path = os.path.join(
+            basepath, 'uploads', secure_filename(f.filename))
+            print(file_path)
+            if file_path[-4:] == '.csv':
+                uploaded_files.append(file_path)
+                f.save(file_path)
+        print("--------------------------------------------------------------------------------")
         print(uploaded_files)
         # Make prediction
-        pred = model_predict()
-
-
+        pred = model_predict(uploaded_files=uploaded_files[0])
         # Process your result for human
                     # Simple argmax
         #pred_class = decode_predictions(pred, top=1)   # ImageNet Decode
