@@ -1,26 +1,17 @@
 from __future__ import division, print_function
-import json
-# coding=utf-8
-import sys
 import os
-import glob
-import re
-
-
 # Keras
-from keras.applications.imagenet_utils import preprocess_input, decode_predictions
 from keras.models import load_model
-# from keras.preprocessing import image
-
 # Flask utils
-from flask import Flask, redirect, url_for, request, render_template
+from flask import Flask, request, render_template
 from werkzeug.utils import secure_filename
-# from gevent.pywsgi import WSGIServerPillow
 from gevent.pywsgi import WSGIServer
+import numpy as np
+import pandas as pd
+import tensorflow as tf
 
 # Define a flask app
 app = Flask(__name__)
-
 
 # Model saved with Keras model.save()
 # Load your trained model
@@ -28,42 +19,26 @@ model = load_model('./models/save_model.h5')
 model.make_predict_function()          # Necessary
 print('Model loaded. Start serving...')
 output = []
-# You can also use pretrained model from Keras
-# Check https://keras.io/applications/
-#from keras.applications.resnet50 import ResNet50
-#model = ResNet50(weights='imagenet')
-#print('Model loaded. Check http://127.0.0.1:5000/')
 
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import tensorflow as tf
-from tensorflow.keras import Sequential,utils
-from tensorflow.keras.layers import Flatten, Dense, Conv1D, MaxPool1D, Dropout
 
 def create_model():
-  model = Sequential()
+  model = tf.keras.Sequential()
 
-  model.add(Conv1D(filters=32, kernel_size=(3,), padding='same', activation='relu', input_shape = (187,1))) # notice that this 187 is the size of columns in dataset
-  model.add(Conv1D(filters=64, kernel_size=(3,), padding='same', activation='relu'))
-  model.add(Conv1D(filters=128, kernel_size=(5,), padding='same', activation='relu'))
+  model.add(tf.keras.layers.Conv1D(filters=32, kernel_size=(3,), padding='same', activation='relu', input_shape = (187,1))) # notice that this 187 is the size of columns in dataset
+  model.add(tf.keras.layers.Conv1D(filters=64, kernel_size=(3,), padding='same', activation='relu'))
+  model.add(tf.keras.layers.Conv1D(filters=128, kernel_size=(5,), padding='same', activation='relu'))
 
-  model.add(MaxPool1D(pool_size=(3,), strides=2, padding='same'))
-  model.add(Dropout(0.5))
+  model.add(tf.keras.layers.MaxPool1D(pool_size=(3,), strides=2, padding='same'))
+  model.add(tf.keras.layers.Dropout(0.5))
 
-  model.add(Flatten())
+  model.add(tf.keras.layers.Flatten())
 
-  model.add(Dense(units = 256, activation='relu'))
-  model.add(Dense(units = 512, activation='relu'))
+  model.add(tf.keras.layers.Dense(units = 256, activation='relu'))
+  model.add(tf.keras.layers.Dense(units = 512, activation='relu'))
 
-  model.add(Dense(units = 5, activation='softmax'))
+  model.add(tf.keras.layers.Dense(units = 5, activation='softmax'))
   return model
 
-
-from sklearn import metrics
-#uploaded_files="./uploads/PVC2.csv"
-#这里的uploaded_files就是输入的CSV文件的路径，按照教授的说法不让用户手动上传的话，从数据库里直接把指定文件的路径传到这里就可以了。
 def model_predict(uploaded_files="./uploads/PVC2.csv",weights_dir="./models/save_model.h5"):
   model = create_model()
   model.load_weights(weights_dir)
@@ -85,15 +60,15 @@ def model_predict(uploaded_files="./uploads/PVC2.csv",weights_dir="./models/save
 
   for i in range(len(inference_result)):
     if inference_result[i] ==0:
-        inference_result[i]= 'N_RBB_LBB'
+        inference_result[i]= 'Normal'
     if inference_result[i] ==1:
             inference_result[i]= 'APC'
     if inference_result[i] ==4:
-                inference_result[i]='PACED'
+                inference_result[i]='Paced Tachycardia'
     if inference_result[i] ==2:
-        inference_result[i]='PVC'
+        inference_result[i]='VPC'
     if inference_result[i] ==3:
-        inference_result[i]='FV'
+        inference_result[i]='VF'
 
   return inference_result
 
@@ -141,5 +116,5 @@ if __name__ == '__main__':
     # app.run(port=5002, debug=True)
 
     # Serve the app with gevent
-    http_server = WSGIServer(('', 5000), app)
+    http_server = WSGIServer(('', 8088), app)
     http_server.serve_forever()

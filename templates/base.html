@@ -13,15 +13,18 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark" style="background: antiquewhite !important;">
-        <div class="container" >
-            <a class="navbar-brand" href="#" style="color: #34495E">Demo For E-hospital platform Backend</a>
-<!--            <button class="btn btn-outline-secondary my-2 my-sm-0" type="submit">Help</button>-->
+    <div class="App">
+        <div class="App-header">
+          <div class="headerTitle">
+            AI detection for e-hospital platform
+          </div>
+          <div class="headerImage"> </div>
         </div>
-    </nav>
-    <div class="container">
-        <div id="content" style="margin-top:2em">{% block content %}{% endblock %}</div>
-    </div>
+  
+        <div class="App_mainbackground">
+                <div id="content" class='contentFrame'>{% block content %}{% endblock %}</div>
+        </div>
+      </div>
 </body>
 
 <footer>
